@@ -37,7 +37,9 @@ if snapshot_command != "status":
 
     run_command = sys.argv[1:]
     output_file = "/tmp/snapshot-{}".format(len(processes))
-    checkout_command  = Popen(["bash", "-c", "git checkout -b {} ; git add . ; git commit -m \"{}\" ; git push {} origin".format(branch_name, run_command, branch_name)])
+    push_command = ["bash", "-c", "git checkout -b {} ; git add . ; git commit -m \"{}\" ; git push {} origin".format(branch_name, run_command, branch_name)]
+    print(push_command)
+    checkout_command  = Popen(push_command)
     os.chdir(snapshot_directory)
     checkout_command  = Popen(["bash", "-c", "git fetch ; git checkout {}".format(branch_name)])
     checkout_command.wait()
