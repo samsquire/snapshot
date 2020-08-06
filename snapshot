@@ -78,11 +78,14 @@ def on_release(key):
 
 
 if snapshot_command == "status":
-    print("Choose process:")
-    show_menu()
-    with Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
-    active_process = processes[selected]
-    output_file = active_process["output_file"]
-    process = Popen(["less", "+F", "-r", output_file])
-    process.wait()
+    if len(processes) > 0:
+        print("Choose process:")
+        show_menu()
+        with Listener(on_press=on_press, on_release=on_release) as listener:
+            listener.join()
+        active_process = processes[selected]
+        output_file = active_process["output_file"]
+        process = Popen(["less", "+F", "-r", output_file])
+        process.wait()
+    else:
+        print("No processes running.")

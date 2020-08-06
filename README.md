@@ -25,10 +25,3 @@ To see running builds, run:
 ```
 snapshot status
 ```
-
-To attach to a running build, run:
-
-```
-snapshot attach
-```
-
