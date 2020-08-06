@@ -5,6 +5,9 @@ import sys
 import json
 import os
 
+cwd = os.getcwd()
+snapshot_command = sys.argv[1:][0]
+
 def check_pid(pid):        
     """ Check For the existence of a unix pid. """
     try:
@@ -17,12 +20,21 @@ def check_pid(pid):
 selected = 0
 
 try:
-    processes = json.loads(open("/tmp/snapshot").read()).processes
+    processes = json.loads(open("/tmp/snapshot").read())
 except:
     processes = []
-output_file = "/tmp/snapshot-{}".format(len(processes))
-process = Popen(sys.argv[1:], stdout=open(output_file, "w"))
-processes.append({"process": sys.argv, "pid": process.pid, "output_file": output_file})
+
+if snapshot_command != "status":
+    snapshot_directory = "/tmp/snapshots/{}".format(len(processes))
+    command = ["bash", "-c", "refdir=$(pwd) ; mkdir -p /tmp/snapshots/ ; repo=$(git remote -v | grep fetch | awk '{{print $2}}' ); echo $repo ; git clone $repo {} --reference-if-able $refdir".format(snapshot_directory)]
+    clone = Popen(command)
+    clone.wait()
+
+
+    output_file = "/tmp/snapshot-{}".format(len(processes))
+    os.chdir(snapshot_directory)
+    process = Popen(sys.argv[1:], stdout=open(output_file, "w"))
+    processes.append({"process": sys.argv, "pid": process.pid, "output_file": output_file})
 
 removal = []
 for process in processes:
@@ -32,6 +44,7 @@ for process in processes:
 if removal:
     for process in removal:
         processes.remove(process)
+open("/tmp/snapshot", "w").write(json.dumps(processes))
 
 def show_menu():
     for i, process in enumerate(processes):
@@ -63,13 +76,13 @@ def on_release(key):
     if key == key.down:
         down()
 
-open("/tmp/snapshot", "w").write(json.dumps(processes))
 
-print("Choose an option:")
-show_menu()
-with Listener(on_press=on_press, on_release=on_release) as listener:
-    listener.join()
-active_process = processes[selected]
-output_file = active_process["output_file"]
-process = Popen(["less", "+F", "-r", output_file])
-process.wait()
+if snapshot_command == "status":
+    print("Choose process:")
+    show_menu()
+    with Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
+    active_process = processes[selected]
+    output_file = active_process["output_file"]
+    process = Popen(["less", "+F", "-r", output_file])
+    process.wait()
