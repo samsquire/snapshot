@@ -40,11 +40,18 @@ if snapshot_command != "status":
     push_command = ["bash", "-c", "git checkout -b {} ; git add . ; git commit -m \"{}\" ; git push -u origin {}".format(branch_name, run_command, branch_name)]
     print(push_command)
     checkout_command  = Popen(push_command)
+    checkout_command.wait()
     os.chdir(snapshot_directory)
-    checkout_command  = Popen(["bash", "-c", "git fetch ; git checkout {}".format(branch_name)])
+    checkout_command = ["bash", "-c", "git fetch ; git checkout {} ; git pull".format(branch_name)]
+    print(checkout_command)
+    checkout_command  = Popen(checkout_command)
     checkout_command.wait()
     process = Popen(run_command, stdout=open(output_file, "w"))
     processes.append({"process": sys.argv, "pid": process.pid, "output_file": output_file})
+
+    os.chdir(cwd)
+    return_command = Popen(["bash", "-c", "git checkout master"])
+    return_command.wait() 
 
 removal = []
 for process in processes:
