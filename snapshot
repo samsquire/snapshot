@@ -1,0 +1,75 @@
+#!/usr/bin/env python3.8
+from subprocess import Popen, PIPE
+from pynput.keyboard import Key, Listener
+import sys
+import json
+import os
+
+def check_pid(pid):        
+    """ Check For the existence of a unix pid. """
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return True
+
+selected = 0
+
+try:
+    processes = json.loads(open("/tmp/snapshot").read()).processes
+except:
+    processes = []
+output_file = "/tmp/snapshot-{}".format(len(processes))
+process = Popen(sys.argv[1:], stdout=open(output_file, "w"))
+processes.append({"process": sys.argv, "pid": process.pid, "output_file": output_file})
+
+removal = []
+for process in processes:
+    if not check_pid(process["pid"]):
+        removal.append(process)
+
+if removal:
+    for process in removal:
+        processes.remove(process)
+
+def show_menu():
+    for i, process in enumerate(processes):
+        sys.stdout.write("\033[F\033[K")
+    for i, process in enumerate(processes):
+        sys.stdout.write("\r{} {}. {} {}\033[1B".format(i, ">" if selected == i else " ", process["process"], "<" if selected == i else " "))
+
+def up():
+    global selected
+    if selected == 1:
+        return
+    selected -= 1
+    show_menu()
+
+def down():
+    global selected
+    if selected == 4:
+        return
+    selected += 1
+    show_menu()
+
+def on_press(key):
+    if key == Key.enter:
+        return False
+
+def on_release(key):
+    if key == key.up:
+        up()
+    if key == key.down:
+        down()
+
+open("/tmp/snapshot", "w").write(json.dumps(processes))
+
+print("Choose an option:")
+show_menu()
+with Listener(on_press=on_press, on_release=on_release) as listener:
+    listener.join()
+active_process = processes[selected]
+output_file = active_process["output_file"]
+process = Popen(["less", "+F", "-r", output_file])
+process.wait()
