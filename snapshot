@@ -25,12 +25,12 @@ except:
     processes = []
 
 if snapshot_command != "status":
-    snapshot_directory = "/tmp/snapshots/{}".format(len(processes))
     branches = Popen(["bash", "-c", "git branch -v | grep snapshot"], stdout=PIPE)
     branches_stdout, branches_stderr = branches.communicate()
     known_branches = branches_stdout.decode('utf-8').split("\n")
     known_branches.pop()
     branch_name = "snapshot-{}".format(len(known_branches))
+    snapshot_directory = "/tmp/snapshots/{}".format(branch_name)
     command = ["bash", "-c", "refdir=$(pwd) ; mkdir -p /tmp/snapshots/ ; repo=$(git remote -v | grep fetch | awk '{{print $2}}' ); echo $repo ; git clone $repo {} --reference-if-able $refdir".format(snapshot_directory)]
     clone = Popen(command)
     clone.wait()
@@ -53,14 +53,17 @@ if snapshot_command != "status":
     return_command = Popen(["bash", "-c", "git checkout master"])
     return_command.wait() 
 
-removal = []
-for process in processes:
-    if not check_pid(process["pid"]):
-        removal.append(process)
 
-if removal:
-    for process in removal:
-        processes.remove(process)
+if snapshot_command == "clean":
+    removal = []
+    for process in processes:
+        if not check_pid(process["pid"]):
+            removal.append(process)
+
+    if removal:
+        for process in removal:
+            processes.remove(process)
+
 open("/tmp/snapshot", "w").write(json.dumps(processes))
 
 def show_menu():
